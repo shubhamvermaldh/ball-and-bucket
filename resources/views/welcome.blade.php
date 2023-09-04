@@ -104,7 +104,17 @@
                         <div class="form-group row">
                             <label for="input{{$ball->color}}" class="col-sm-2 col-form-label">{{$ball->color}}</label>
                             <div class="col-sm-10">
-                                <input type="number" class="form-control" name="color[{{$ball->color}}]" id="input{{$ball->color}}">
+                                {{-- @if(session('data')['colors']) --}}
+                                @if(session('data') && session('data')['colors'][$ball->color])
+                                    @php $volume = session('data')['colors'][$ball->color] @endphp
+                                @else
+                                    @php $volume = '' @endphp
+                                    {{-- @foreach(session('data')['colors'] as $key => $color){
+                                        @if($ball->color == $key)
+                                        @endif
+                                    } --}}
+                                @endif
+                                <input type="number" class="form-control" name="color[{{$ball->color}}]" id="input{{$ball->color}}" value="{{$volume}}">
                             </div>
                         </div>
                     @endforeach
@@ -118,9 +128,9 @@
                     @if(session('error'))
                         <p>{{session('error')}}</p>
                     @endif
-                    @if(session('data'))
+                    @if(session('data') && session('data')['ballPlacements'])
                         <ul>
-                            @foreach(session('data') as $key => $data)
+                            @foreach(session('data')['ballPlacements'] as $key => $data)
                                 <li>Bucket {{$key}}: Place 
                                     @php $comma = false; @endphp
                                     @foreach($data as $ball)

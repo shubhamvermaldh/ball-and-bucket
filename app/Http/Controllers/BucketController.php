@@ -34,7 +34,7 @@ class BucketController extends Controller
 
     public function suggest(Request $request)
     {
-        echo "<pre>";
+        // echo "<pre>";
         $colors = $request->color;
         $where = [];
         foreach ($colors as $key => $color) {
@@ -50,14 +50,89 @@ class BucketController extends Controller
         $totalVolume = 0;
         $totalBallVolume = [];
         $totalBallSize = [];
+        $totalBalls = [];
         foreach($balls as $ball){
-            $totalBallVolume[$ball->color] = $colors[$ball->color] * $ball->size;
-            $totalBallSize[$ball->color] = $ball->size;
+            $totalBalls[$ball->color] = [
+                'totalSize' => $colors[$ball->color] * $ball->size,
+                'bollSize' => $ball->size,
+                'totalBalls' => $colors[$ball->color]
+            ];
+            
+            // $totalBallSize[$ball->color] = $ball->size;
             $totalVolume += $colors[$ball->color] * $ball->size;
 
         }
         // print_r($totalBallVolume)
         $buckets = Bucket::orderBy('empty_volume', 'desc')->get();
+
+        $ballPlacements = [];
+        // echo "<pre>";
+        foreach($buckets as $bucketKey => $bucket){
+            if ($totalVolume <= 0) {
+                break; 
+            }
+
+            $empty_volume =  $bucket->empty_volume;
+            foreach ($totalBalls as $ballKey => $ball) {
+                // echo $ball['totalSize']. "balls <br>";
+                if(!$empty_volume){
+                    break;
+                }
+                if(!$ball['totalSize']){
+                    continue;
+                }
+
+                if($ball['totalSize'] <= $empty_volume){
+                    $ballPlacements[$bucket->name][] = [
+                        'bucket' => $bucket->name,
+                        'volume' => $ball['totalBalls'],
+                        'color' => $ballKey
+                    ];
+                    $totalBalls[$ballKey]['totalBalls'] = 0;
+                    $totalBalls[$ballKey]['totalSize'] = 0;
+                    $empty_volume = $empty_volume - $ball['totalSize'];
+                    $totalVolume = $totalVolume - $ball['totalSize'];
+                }else{
+                    // echo $ball['totalSize'] - $empty_volume . " dd <br>";
+                    $newBalls = explode('.', $empty_volume/$ball['bollSize']);
+                    if(!$newBalls[0]){
+                        continue;
+                    }
+
+                    $ballPlacements[$bucket->name][] = [
+                        'bucket' => $bucket->name,
+                        'volume' => $newBalls[0],
+                        'color' => $ballKey
+                    ];
+
+                    $totalBalls[$ballKey]['totalBalls'] = $totalBalls[$ballKey]['totalBalls']-$newBalls[0];
+                    $totalBalls[$ballKey]['totalSize'] = $totalBalls[$ballKey]['totalSize']-($newBalls[0]*$ball['bollSize']);
+                    $empty_volume = $empty_volume - ($newBalls[0]*$ball['bollSize']);
+                    $totalVolume = $totalVolume - ($newBalls[0]*$ball['bollSize']);
+
+                    // $newBalls = explode('.', '7');
+                    // echo $empty_volume/$ball['bollSize'] . " dd <br>";
+                    // print_r($newBalls[0]*);
+                }
+            }
+            
+            // print_r($totalBalls);
+            // echo "Bucket ".$bucket->name." empty_volume ".$empty_volume." Color $key Ball $ball totalvol $totalVolume ballSize $totalBalls<br>";
+            
+        }
+        // echo $empty_volume ." empty_volume <br>";
+        // echo $totalVolume." totalVolume <br>";
+        // print_r($ballPlacements);
+        if($totalVolume > 0){
+            return redirect()->back()->with('error', 'you need to add more buckets');
+        }
+        $data['ballPlacements'] = $ballPlacements;
+        $data['colors'] = $colors;
+        return redirect()->back()->with('data', $data);
+
+
+        die();
+        
         $ballPlacements = [];
         foreach($buckets as $bucketKey => $bucket){
 
